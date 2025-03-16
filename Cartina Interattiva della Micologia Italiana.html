@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Cartina Interattiva della Micologia Italiana</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    .header {
+      text-align: center;
+      padding: 1rem;
+      background-color: #f2f2f2;
+    }
+    #map {
+      height: 90vh;
+      width: 100%;
+    }
+    .popup-content {
+      text-align: center;
+    }
+    .popup-img {
+      width: 200px;
+      display: block;
+      margin: 0.5rem auto;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Cartina Interattiva della Micologia Italiana</h1>
+    <p>Esplora la diffusione e la biodiversità dei funghi in Italia attraverso dati reali, analisi dettagliate e approfondimenti scientifici.</p>
+  </div>
+  <div id="map"></div>
+
+  <!-- Carica la libreria Leaflet -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Inizializza la mappa centrata sull'Italia
+    var map = L.map('map').setView([42, 12.5], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // URL dell'API GBIF: occorrenze di Fungi (kingdomKey=5) in Italia (country=IT)
+    var gbifUrl = "https://api.gbif.org/v1/occurrence/search?country=IT&kingdomKey=5&limit=300";
+
+    // Esegui la richiesta all'API
+    fetch(gbifUrl)
+      .then(response => response.json())
+      .then(data => {
+        // Per ogni record restituito
+        data.results.forEach(function(record) {
+          // Verifica che esistano coordinate valide
+          if(record.decimalLatitude && record.decimalLongitude) {
+            // Crea un marker sulla mappa
+            var marker = L.marker([record.decimalLatitude, record.decimalLongitude]).addTo(map);
+
+            // Recupera il nome scientifico e la località (se presenti)
+            var scientificName = record.scientificName || "Nome non disponibile";
+            var locality = record.locality || "Località non specificata";
+
+            // Link al record su GBIF (usando la chiave del record)
+            var recordUrl = record.key ? "https://www.gbif.org/occurrence/" + record.key : "#";
+
+            // Se il record non dispone di immagine, usa un placeholder
+            // Nota: alcuni record possono contenere "associatedMedia", ma per semplicità utilizziamo un placeholder
+            var imageUrl = "https://via.placeholder.com/200.jpg?text=" + encodeURIComponent(scientificName);
+
+            // Crea il contenuto del popup
+            var popupContent = "<div class='popup-content'><b>" + scientificName + "</b><br>" +
+                               "Località: " + locality + "<br>" +
+                               "Coordinate: Lat " + record.decimalLatitude.toFixed(2) + ", Lon " + record.decimalLongitude.toFixed(2) + "<br>" +
+                               "<img class='popup-img' src='" + imageUrl + "' alt='" + scientificName + 
+                               "' onclick='window.open(\"" + imageUrl + "\",\"_blank\")'><br>" +
+                               "<a href='" + recordUrl + "' target='_blank'>Approfondisci su GBIF</a></div>";
+
+            // Associa il popup al marker
+            marker.bindPopup(popupContent);
+          }
+        });
+      })
+      .catch(error => console.error("Errore nel recupero dei dati da GBIF:", error));
+  </script>
+</body>
+</html>
+
+
+
+
